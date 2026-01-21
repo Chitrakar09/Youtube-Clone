@@ -42,4 +42,23 @@ const deleteOnCloudinary = async (imageUrl) => {
   }
 };
 
-export { uploadOnCloudinary, deleteOnCloudinary };
+const uploadVideoOnCloudinary = async (localFilePath) => {
+  try {
+    if (!localFilePath) return null;
+
+    const response = await cloudinary.uploader.upload_large(localFilePath, {
+      resource_type: "auto",
+      chunk_size: 6000000,
+    });
+
+    fs.unlinkSync(localFilePath);
+
+    return response;
+  } catch (error) {
+    fs.unlinkSync(localFilePath); // remove the locally saved temp file as the upload operation failed
+    console.error(`Error, file: ${localFilePath} deleted`, error);
+    return null;
+  }
+};
+
+export { uploadOnCloudinary, deleteOnCloudinary, uploadVideoOnCloudinary };

@@ -12,14 +12,14 @@ import {
   updateCoverImage,
   updateFullName,
 } from "../controllers/user.controller.js";
-import { upload } from "../middlewares/uploadFile.middleware.js";
+import { uploadImage } from "../middlewares/uploadImageFile.middleware.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 // route for register
 router.route("/register").post(
-  upload.fields([
+  uploadImage.fields([
     {
       name: "avatar",
       maxCount: 1,
@@ -55,12 +55,12 @@ router.route("/updateFullName").patch(verifyJwt, updateFullName);
 // route for updating avatar
 router
   .route("/updateAvatar")
-  .patch(verifyJwt, upload.single("avatar"), updateAvatar);
+  .patch(verifyJwt, uploadImage.single("avatar"), updateAvatar);
 
 // route for updating cover Image
 router
   .route("/updateCoverImage")
-  .patch(verifyJwt, upload.single("coverImage"), updateCoverImage);
+  .patch(verifyJwt, uploadImage.single("coverImage"), updateCoverImage);
 
 // route for getting user channel profile
 router.route("/channel/:username").get(verifyJwt, getChannelProfile);
