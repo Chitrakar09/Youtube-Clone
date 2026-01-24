@@ -24,10 +24,10 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
-const deleteOnCloudinary = async (imageUrl) => {
+const deleteOnCloudinary = async (fileUrl) => {
   try {
     // get the derived_resource(display name in cloudinary)
-    const cloudinaryPublicId = imageUrl.match(/\/v\d+\/([^/.]+)\./)[1];
+    const cloudinaryPublicId = fileUrl.match(/\/v\d+\/([^/.]+)\./)[1];
 
     // delete in cloudinary
     const response = await cloudinary.api.delete_resources([
@@ -43,22 +43,27 @@ const deleteOnCloudinary = async (imageUrl) => {
 };
 
 const uploadVideoOnCloudinary = async (localFilePath) => {
-  try {
-    if (!localFilePath) return null;
+  if (!localFilePath) return null;
 
-    const response = await cloudinary.uploader.upload_large(localFilePath, {
-      resource_type: "auto",
-      chunk_size: 6000000,
-    });
+  /*
+  Note: cloudinary.uploader.upload_large() returns a Chunkable stream if no callback is provided,
+  instead of a Promise. The Chunkable emits events (finish, error) when upload completes.
+  To use async/await and get the final uploaded file info (URL, public_id, etc.),
+  we wrap upload_large in a Promise that resolves in the callback. 
+  This ensures 'await' waits for the upload to finish and gives the actual response.
+*/
 
-    fs.unlinkSync(localFilePath);
-
-    return response;
-  } catch (error) {
-    fs.unlinkSync(localFilePath); // remove the locally saved temp file as the upload operation failed
-    console.error(`Error, file: ${localFilePath} deleted`, error);
-    return null;
-  }
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_large(
+      localFilePath,
+      { resource_type: "auto", chunk_size: 6000000 },
+      (error, result) => {
+        fs.unlinkSync(localFilePath); // always delete temp file
+        if (error) return reject(error); // send error to caller
+        resolve(result); // send final response to caller
+      },
+    );
+  });
 };
 
 export { uploadOnCloudinary, deleteOnCloudinary, uploadVideoOnCloudinary };

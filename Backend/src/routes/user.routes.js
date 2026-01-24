@@ -12,7 +12,7 @@ import {
   updateCoverImage,
   updateFullName,
 } from "../controllers/user.controller.js";
-import { uploadImage } from "../middlewares/uploadImageFile.middleware.js";
+import { uploadFile as uploadImage } from "../middlewares/uploadFile.middleware.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 
 const router = Router();
