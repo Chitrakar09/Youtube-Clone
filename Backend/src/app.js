@@ -42,6 +42,6 @@ app.use("/api/v1/users",userRouter)
 //http://localhost:8000/api/v1/users/register
 
 //route for video
-app.use("/api/v1/video",videoRouter)
+app.use("/api/v1/videos",videoRouter)
 
 export { app };
