@@ -86,7 +86,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
 });
 
 // get all video
-const getAllVideo = asyncHandler(async () => {
+const getAllVideo = asyncHandler(async (req,res) => {
   // get the queries
   // validate the queries
   // write the aggregate pipeline based on the queries
@@ -94,7 +94,7 @@ const getAllVideo = asyncHandler(async () => {
   // send the paginated result as response
 
   // get the queries and validate
-  const { page, limit, search, sortBy, sortOrder, userId } = req.queries; // query-> what to search for, sortBy-> title, views etc, sortOrder-> ascending or descending
+  const { page, limit, search, sortBy, sortOrder, userId } = req.query; // query-> what to search for, sortBy-> title, views etc, sortOrder-> ascending or descending
 
   // parameters we get from the url are string
   // converting page and limit to integer and checking if they are valid
@@ -167,6 +167,8 @@ const getAllVideo = asyncHandler(async () => {
           },
         ],
       },
+    },
+    {
       $addFields: {
         /* 
         originally from lookup:"owner": [{ "fullName": "Pratyush", "username": "chitrakar09", "avatar": "url" }]
@@ -197,7 +199,7 @@ const getAllVideo = asyncHandler(async () => {
           $first: "$owner",
         },
       },
-    },
+    }
   ]);
 
   if(!videoList || videoList.length==0){
