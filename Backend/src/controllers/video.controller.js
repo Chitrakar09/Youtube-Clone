@@ -86,7 +86,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
 });
 
 // get all video
-const getAllVideo = asyncHandler(async (req,res) => {
+const getAllVideo = asyncHandler(async (req, res) => {
   // get the queries
   // validate the queries
   // write the aggregate pipeline based on the queries
@@ -199,53 +199,149 @@ const getAllVideo = asyncHandler(async (req,res) => {
           $first: "$owner",
         },
       },
-    }
+    },
   ]);
 
-  if(!videoList || videoList.length==0){
-    return res
-    .status(200)
-    .json(
+  if (!videoList || videoList.length == 0) {
+    return res.status(200).json(
       new apiResponse(
         201,
         {
-          videos:[],
-          pagination:{
-            totalVideos:0,
-            totalPages:0,
-            currentPage:pageNumber,
-            limit:limitNumber,
-            hasNextPage:false,
-            hasPrevPage:false
-          }
+          videos: [],
+          pagination: {
+            totalVideos: 0,
+            totalPages: 0,
+            currentPage: pageNumber,
+            limit: limitNumber,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
         },
-        "No videos found"
-      )
-    )
+        "No videos found",
+      ),
+    );
   }
 
-  const totalVideos= await Video.countDocuments(matchCondition) // count total videos based on the match conditions
-  const totalPages= Math.ceil(totalVideos/limitNumber) // Example: 25 videos with limit 10 = 3 pages. Math.ceil gives the nearest highest integer
+  const totalVideos = await Video.countDocuments(matchCondition); // count total videos based on the match conditions
+  const totalPages = Math.ceil(totalVideos / limitNumber); // Example: 25 videos with limit 10 = 3 pages. Math.ceil gives the nearest highest integer
 
-  return res
-  .status(200)
-  .json(
+  return res.status(200).json(
     new apiResponse(
       201,
       {
-        videos:videoList,
-        pagination:{
+        videos: videoList,
+        pagination: {
           totalVideos,
           totalPages,
-          currentPage:pageNumber,
-          limit:limitNumber,
-          hasNextPage:pageNumber<totalPages,
-          hasPrevPage:pageNumber>1
-        }
+          currentPage: pageNumber,
+          limit: limitNumber,
+          hasNextPage: pageNumber < totalPages,
+          hasPrevPage: pageNumber > 1,
+        },
       },
-      "Videos successfully fetched"
-    )
-  )
+      "Videos successfully fetched",
+    ),
+  );
 });
 
-export { uploadVideo, getAllVideo };
+// get a video
+const getVideoById = asyncHandler(async (req, res) => {
+  // get the video id from the req.params
+  // aggregate pipeline to get the video based on the video id
+  // write the aggregation pipeline to get the owner details
+  // check if user is subscribed using the aggregation pipeline
+  // check if the video is public. if not public and user is not the owner deny access
+  // if public then increment views
+  // return the response
+
+  const { videoId } = req.params;
+
+  if (!videoId) throw new apiError(400, "Video Id missing");
+
+  const [video] = await Video.aggregate([
+    // match the video id
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(videoId),
+      },
+    },
+    // get the owner info
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          // to check if the user is subscribed or not
+          {
+            $match: {
+              $expr: {
+                $eq: ["$_id", "$$ownerId"], // compare the user _id with video owner
+              },
+            },
+          },
+          // currently in the user model and connecting to subscriptions model to get the no. of subscribers of the owner
+          {
+            $lookup: {
+              from: "subscriptions",
+              localField: "_id",
+              foreignField: "channel",
+              as: "subscribers",
+            },
+          },
+          // check if the user is subscribed to the owner by checking the user in the list of the subscriber
+          {
+            $addFields: {
+              isSubscribedTo: {
+                $cond: {
+                  if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                  then: true,
+                  else: false,
+                },
+              },
+            },
+          },
+          // give only the required data
+          {
+            $project: {
+              fullName: 1,
+              avatar: 1,
+              username: 1,
+              isSubscribedTo: 1,
+            },
+          },
+        ],
+        let: { ownerId: "$owner" }, // In a $lookup, the let option lets you pass variables from the outer document into the inner pipeline. Think of it like giving the inner pipeline a parameter to use in its queries.“For each video, take its owner field and call it ownerId. Then, when looking inside the users collection, you can use that variable (ownerId) to match users.”
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner",
+        },
+      },
+    },
+  ]);
+
+  if (!video) throw new apiError(500, "Couldn't get the video.");
+
+  // if the video is not public and user is not the owner, then user is not authorized to view the video
+  if (!video.isPublic && req.user?._id !== video.owner._id)
+    return res
+      .status(403)
+      .json(new apiResponse(403, {}, "This video is private"));
+
+  
+  // if is public and user is not the owner, then increment the views
+  if (video.isPublic && req.user?._id !== video.owner._id)
+    await Video.updateOne(
+      { _id: new mongoose.Types.ObjectId(videoId) },
+      { $inc: { views: 1 } },
+    );
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, video, "Successfully fetched the video"));
+});
+export { uploadVideo, getAllVideo, getVideoById };
