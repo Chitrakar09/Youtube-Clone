@@ -332,7 +332,6 @@ const getVideoById = asyncHandler(async (req, res) => {
       .status(403)
       .json(new apiResponse(403, {}, "This video is private"));
 
-  
   // if is public and user is not the owner, then increment the views
   if (video.isPublic && req.user?._id !== video.owner._id)
     await Video.updateOne(
@@ -344,4 +343,71 @@ const getVideoById = asyncHandler(async (req, res) => {
     .status(200)
     .json(new apiResponse(200, video, "Successfully fetched the video"));
 });
-export { uploadVideo, getAllVideo, getVideoById };
+
+// update video details
+const updateVideoDetails = asyncHandler(async (req, res) => {
+  // get the video Id to update the detail of that video
+  // check if the user updating the video is the owner, if not then not authorized
+  // validate if there is required details to update
+  // if the thumbnail is being updated, send the image to cloudinary
+  // update the details
+  // if thumbnail updated, delete old one in cloudinary
+  // return the response
+
+  // video id
+  const { videoId } = req.params;
+  validateMongoId(videoId, "Video Id");
+  const currentVideoDetails = await Video.findById(videoId).select(
+    "-videoFile -title -description -duration -views -isPublic",
+  );
+
+  if (!currentVideoDetails) throw new apiError(404, "Video Not Found");
+
+  // check if the user and uploader are same
+  if (currentVideoDetails.owner !== req.user?._id)
+    throw new apiError(403, "Unauthorized Access");
+
+  // validate if there is required details to update
+  const { title, description } = req.body;
+  const updatedThumbnailLocalPath = req.file?.path;
+
+  if (!(title || description || updatedThumbnailLocalPath))
+    throw new apiError(400, "Fields are empty");
+
+  // if thumbnail is being updated, send the image to cloudinary
+  let updatedThumbnailUrl;
+  if (updatedThumbnailLocalPath) {
+    updatedThumbnailUrl = await uploadOnCloudinary(updatedThumbnailLocalPath);
+
+    if (!updatedThumbnailUrl)
+      throw new apiError(500, "Could not update thumbnail");
+  }
+
+  // update the details
+  const updatedVideoDetails = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        ...(title && { title }),
+        ...(description && { description }),
+        ...(updatedThumbnailUrl && { thumbnail: updatedThumbnailUrl }),
+      },
+    },
+    {
+      new: true,
+    },
+  );
+
+  if (!updatedVideoDetails) {
+    await deleteOnCloudinary(updatedThumbnailUrl);
+    throw new apiError(500, "Could not update the details");
+  }
+
+  await deleteOnCloudinary(currentVideoDetails.thumbnail);
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, updatedVideoDetails, "Details Updated"));
+});
+
+export { uploadVideo, getAllVideo, getVideoById, updateVideoDetails };

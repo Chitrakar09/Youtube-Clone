@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAllVideo, getVideoById, uploadVideo } from "../controllers/video.controller.js";
+import { getAllVideo, getVideoById, updateVideoDetails, uploadVideo } from "../controllers/video.controller.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 import { uploadFile } from "../middlewares/uploadFile.middleware.js";
 
@@ -25,5 +25,5 @@ router
 router
 .route("/:videoId")
 .get(getVideoById)
-
+.patch(uploadFile.single("thumbnail"),updateVideoDetails)
 export default router;
