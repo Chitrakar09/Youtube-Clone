@@ -3,6 +3,7 @@ import {
   deleteVideo,
   getAllVideo,
   getVideoById,
+  toggleIsPublic,
   updateVideoDetails,
   uploadVideo,
 } from "../controllers/video.controller.js";
@@ -28,9 +29,15 @@ router
   // get video based on query. url example: https://example.com/videos?page=1&limit=10&search=text&sortBy=title
   .get(getAllVideo);
 
+// route for:  
 router
   .route("/:videoId")
+  // get video by Id
   .get(getVideoById)
+  // update Video details
   .patch(uploadFile.single("thumbnail"), updateVideoDetails)
+  // delete a video
   .delete(deleteVideo);
+
+router.route("/toggle/publish/:videoId").patch(toggleIsPublic)
 export default router;

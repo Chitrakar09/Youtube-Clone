@@ -439,21 +439,67 @@ const deleteVideo = asyncHandler(async (req, res) => {
   const videoUrl = videoDetails.videoFile;
 
   // delete the video document in the database
-  const deletedVideo= await Video.findByIdAndDelete(videoId)
+  const deletedVideo = await Video.findByIdAndDelete(videoId);
 
-  if(!deletedVideo) throw new apiError(500,"Couldn't delete the video")
-  
+  if (!deletedVideo) throw new apiError(500, "Couldn't delete the video");
+
   // delete the video and thumbnail in cloudinary
-  const deletedVideoOnCloudinary=await deleteOnCloudinary(videoDetails.videoFile,"video")
-  const deletedThumbnailOnCloudinary=await deleteOnCloudinary(videoDetails.thumbnail)
+  const deletedVideoOnCloudinary = await deleteOnCloudinary(
+    videoDetails.videoFile,
+    "video",
+  );
+  const deletedThumbnailOnCloudinary = await deleteOnCloudinary(
+    videoDetails.thumbnail,
+  );
 
   // return a response
   return res
-  .status(200)
-  .json(
-    new apiResponse(200,{},(deletedVideoOnCloudinary&&deletedThumbnailOnCloudinary)?"Sucessfully deleted the video":"Successfully delete video in database but couldn't delete on cloudinary")
-  )
+    .status(200)
+    .json(
+      new apiResponse(
+        200,
+        {},
+        deletedVideoOnCloudinary && deletedThumbnailOnCloudinary
+          ? "Successfully deleted the video"
+          : "Successfully delete video in database but couldn't delete on cloudinary",
+      ),
+    );
+});
 
+// toggle isPublic
+
+const toggleIsPublic = asyncHandler(async (req, res) => {
+  // get the video id and validate it
+  // check if the user == owner. if not then unauthorized
+  // toggle the isPublic
+  // return the response
+
+  const { videoId } = req.params;
+
+  validateMongoId(videoId, "Video Id");
+  const videoDetails = await Video.findById(videoId).select(
+    "-videoFile -thumbnail -title -description -duration -views",
+  );
+
+  if (!videoDetails) throw new apiError(404, "Video Not Found");
+
+  // check if the user and uploader are same
+  if (videoDetails.owner !== req.user?._id)
+    throw new apiError(403, "Unauthorized Access");
+
+  // toggle the isPublic
+  videoDetails.isPublic = !videoDetails.isPublic;
+  await videoDetails.save();
+
+  return res
+    .status(200)
+    .json(
+      new apiResponse(
+        200,
+        {},
+        ` Video set to ${videoDetails.isPublic ? "Private" : "Public"} successfully`,
+      ),
+    );
 });
 
 export {
@@ -462,4 +508,5 @@ export {
   getVideoById,
   updateVideoDetails,
   deleteVideo,
+  toggleIsPublic,
 };
