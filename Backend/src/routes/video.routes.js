@@ -1,5 +1,11 @@
 import { Router } from "express";
-import { getAllVideo, getVideoById, updateVideoDetails, uploadVideo } from "../controllers/video.controller.js";
+import {
+  deleteVideo,
+  getAllVideo,
+  getVideoById,
+  updateVideoDetails,
+  uploadVideo,
+} from "../controllers/video.controller.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 import { uploadFile } from "../middlewares/uploadFile.middleware.js";
 
@@ -23,7 +29,8 @@ router
   .get(getAllVideo);
 
 router
-.route("/:videoId")
-.get(getVideoById)
-.patch(uploadFile.single("thumbnail"),updateVideoDetails)
+  .route("/:videoId")
+  .get(getVideoById)
+  .patch(uploadFile.single("thumbnail"), updateVideoDetails)
+  .delete(deleteVideo);
 export default router;

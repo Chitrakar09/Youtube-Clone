@@ -403,11 +403,63 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
     throw new apiError(500, "Could not update the details");
   }
 
+  // delete old thumbnail in cloudinary
   await deleteOnCloudinary(currentVideoDetails.thumbnail);
 
+  // return the updated detail of the video
   return res
     .status(200)
     .json(new apiResponse(200, updatedVideoDetails, "Details Updated"));
 });
 
-export { uploadVideo, getAllVideo, getVideoById, updateVideoDetails };
+// delete video
+const deleteVideo = asyncHandler(async (req, res) => {
+  // get the video id and check if it is valid
+  // check if the user and owner are same. If not, unauthorized
+  // get the video url
+  // delete the video in database
+  // delete the video and thumbnail in cloudinary
+  // return a response
+
+  // get the video id and check if it is valid
+  const { videoId } = req.params;
+
+  validateMongoId(videoId, "Video Id");
+  const videoDetails = await Video.findById(videoId).select(
+    "-title -description -duration -views -isPublic",
+  );
+
+  if (!videoDetails) throw new apiError(404, "Video Not Found");
+
+  // check if the user and uploader are same
+  if (videoDetails.owner !== req.user?._id)
+    throw new apiError(403, "Unauthorized Access");
+
+  // get the video url
+  const videoUrl = videoDetails.videoFile;
+
+  // delete the video document in the database
+  const deletedVideo= await Video.findByIdAndDelete(videoId)
+
+  if(!deletedVideo) throw new apiError(500,"Couldn't delete the video")
+  
+  // delete the video and thumbnail in cloudinary
+  const deletedVideoOnCloudinary=await deleteOnCloudinary(videoDetails.videoFile,"video")
+  const deletedThumbnailOnCloudinary=await deleteOnCloudinary(videoDetails.thumbnail)
+
+  // return a response
+  return res
+  .status(200)
+  .json(
+    new apiResponse(200,{},(deletedVideoOnCloudinary&&deletedThumbnailOnCloudinary)?"Sucessfully deleted the video":"Successfully delete video in database but couldn't delete on cloudinary")
+  )
+
+});
+
+export {
+  uploadVideo,
+  getAllVideo,
+  getVideoById,
+  updateVideoDetails,
+  deleteVideo,
+};

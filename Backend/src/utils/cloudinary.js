@@ -24,20 +24,20 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
-const deleteOnCloudinary = async (fileUrl) => {
+const deleteOnCloudinary = async (fileUrl,type="image") => {
   try {
     // get the derived_resource(display name in cloudinary)
     const cloudinaryPublicId = fileUrl.match(/\/v\d+\/([^/.]+)\./)[1];
 
     // delete in cloudinary
     const response = await cloudinary.api.delete_resources([
-      `${cloudinaryPublicId}`,
-    ]);
+      `${cloudinaryPublicId}`
+    ],{resource_type:type});
 
     //return the response
     return response;
   } catch (error) {
-    console.error("Error deleting the image in cloudinary", error);
+    console.error(`Error deleting the ${type} in cloudinary`, error);
     return null;
   }
 };
