@@ -360,15 +360,17 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
   const currentVideoDetails = await Video.findById(videoId).select(
     "-videoFile -title -description -duration -views -isPublic",
   );
+  
 
   if (!currentVideoDetails) throw new apiError(404, "Video Not Found");
 
   // check if the user and uploader are same
-  if (currentVideoDetails.owner !== req.user?._id)
+  if (!currentVideoDetails.owner.equals(req.user?._id))
     throw new apiError(403, "Unauthorized Access");
 
   // validate if there is required details to update
-  const { title, description } = req.body;
+  const title = req.body?.title;
+  const description = req.body?.description;
   const updatedThumbnailLocalPath = req.file?.path;
 
   if (!(title || description || updatedThumbnailLocalPath))
@@ -390,7 +392,7 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
       $set: {
         ...(title && { title }),
         ...(description && { description }),
-        ...(updatedThumbnailUrl && { thumbnail: updatedThumbnailUrl }),
+        ...(updatedThumbnailUrl && { thumbnail: updatedThumbnailUrl.url }),
       },
     },
     {
@@ -416,7 +418,6 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
   // get the video id and check if it is valid
   // check if the user and owner are same. If not, unauthorized
-  // get the video url
   // delete the video in database
   // delete the video and thumbnail in cloudinary
   // return a response
@@ -432,11 +433,8 @@ const deleteVideo = asyncHandler(async (req, res) => {
   if (!videoDetails) throw new apiError(404, "Video Not Found");
 
   // check if the user and uploader are same
-  if (videoDetails.owner !== req.user?._id)
+  if (!videoDetails.owner.equals(req.user?._id))
     throw new apiError(403, "Unauthorized Access");
-
-  // get the video url
-  const videoUrl = videoDetails.videoFile;
 
   // delete the video document in the database
   const deletedVideo = await Video.findByIdAndDelete(videoId);
@@ -471,6 +469,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
 const toggleIsPublic = asyncHandler(async (req, res) => {
   // get the video id and validate it
   // check if the user == owner. if not then unauthorized
+  // keep the current isPublic value in a new variable
   // toggle the isPublic
   // return the response
 
@@ -484,10 +483,11 @@ const toggleIsPublic = asyncHandler(async (req, res) => {
   if (!videoDetails) throw new apiError(404, "Video Not Found");
 
   // check if the user and uploader are same
-  if (videoDetails.owner !== req.user?._id)
+  if (!videoDetails.owner.equals(req.user?._id))
     throw new apiError(403, "Unauthorized Access");
 
   // toggle the isPublic
+  const prevIsPublic= videoDetails.isPublic
   videoDetails.isPublic = !videoDetails.isPublic;
   await videoDetails.save();
 
@@ -497,7 +497,7 @@ const toggleIsPublic = asyncHandler(async (req, res) => {
       new apiResponse(
         200,
         {},
-        ` Video set to ${videoDetails.isPublic ? "Private" : "Public"} successfully`,
+        ` Video set to ${prevIsPublic ? "Private" : "Public"} successfully`,
       ),
     );
 });
