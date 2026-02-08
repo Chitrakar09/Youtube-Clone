@@ -34,7 +34,7 @@ app.use(cookieParser())
 
 import userRouter from './routes/user.routes.js'
 import videoRouter from './routes/video.routes.js'
-
+import commentRouter from './routes/comment.routes.js'
 // routes declaration
 
 // route for user
@@ -43,5 +43,7 @@ app.use("/api/v1/users",userRouter)
 
 //route for video
 app.use("/api/v1/videos",videoRouter)
+
+app.use("/api/v1/comments",commentRouter)
 
 export { app };
