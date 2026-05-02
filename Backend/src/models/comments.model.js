@@ -6,14 +6,14 @@ const commentSchema = new Schema(
       type: String,
       required: true,
     },
-    owner: {
+    owner: { // this is the commenter
       type: Schema.Types.ObjectId,
       ref: "User",
     },
     targetModel: {
       type: String,
       required: true,
-      enum: ["Video", "Tweet", "Comment"],
+      enum: ["Video", "Tweet"],
     },
     modelId: {
       type: Schema.Types.ObjectId,

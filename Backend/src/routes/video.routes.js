@@ -12,14 +12,11 @@ import { uploadFile } from "../middlewares/uploadFile.middleware.js";
 
 const router = Router();
 
-// verifyJwt for all routes
-router.use(verifyJwt);
-
 // route for:
 router
   .route("/")
   //  uploading video
-  .post(
+  .post(verifyJwt,
     uploadFile.fields([
       { name: "thumbnail", maxCount: 1 },
       { name: "video", maxCount: 1 },
@@ -35,9 +32,9 @@ router
   // get video by Id
   .get(getVideoById)
   // update Video details
-  .patch(uploadFile.single("thumbnail"), updateVideoDetails)
+  .patch(verifyJwt,uploadFile.single("thumbnail"), updateVideoDetails)
   // delete a video
-  .delete(deleteVideo);
+  .delete(verifyJwt,deleteVideo);
 
 router.route("/toggle/publish/:videoId").patch(toggleIsPublic)
 export default router;

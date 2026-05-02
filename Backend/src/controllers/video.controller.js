@@ -137,7 +137,7 @@ const getAllVideo = asyncHandler(async (req, res) => {
   // if sort by is provided, sort based on that
   if (sortBy) {
     sortOptions[sortBy] =
-      sortOrder && sortOrder.toLowerCase() === "asc" ? 1 : -1;
+      sortOrder && sortOrder.toLowerCase() === "asc" ? 1 : -1; // if there is sortOrder && sortOrder.toLowerCase === asc then 1 else -1
     // sortOptions={title:1}, sortBy=title, asc= ascending(1) and anything else is descending(-1)
   } else {
     sortOptions.createdAt = -1; // Default: sort according to the latest creation date
@@ -359,7 +359,6 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
   const currentVideoDetails = await Video.findById(videoId).select(
     "-videoFile -title -description -duration -views -isPublic",
   );
-  
 
   if (!currentVideoDetails) throw new apiError(404, "Video Not Found");
 
@@ -486,7 +485,7 @@ const toggleIsPublic = asyncHandler(async (req, res) => {
     throw new apiError(403, "Unauthorized Access");
 
   // toggle the isPublic
-  const prevIsPublic= videoDetails.isPublic
+  const prevIsPublic = videoDetails.isPublic;
   videoDetails.isPublic = !videoDetails.isPublic;
   await videoDetails.save();
 
