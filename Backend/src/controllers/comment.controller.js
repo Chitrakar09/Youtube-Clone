@@ -100,8 +100,11 @@ const getComments = asyncHandler(async (req, res) => {
 
   // aggregation pipeline
   const commentsList = await Comment.aggregate([
-    { $match: {
-      modelId:new mongoose.Types.ObjectId(modelId)} },
+    {
+      $match: {
+        modelId: new mongoose.Types.ObjectId(modelId),
+      },
+    },
     { $sort: sortingOrder },
     { $skip: skip },
     { $limit: limitNumber },
@@ -131,11 +134,12 @@ const getComments = asyncHandler(async (req, res) => {
     },
     {
       $project: {
-        owner: 0
-      }
-    }
+        owner: 0,
+      },
+    },
   ]);
 
+  // return the response
   if (!commentsList || commentsList.length === 0) {
     return res.status(200).json(
       new apiResponse(
@@ -156,9 +160,9 @@ const getComments = asyncHandler(async (req, res) => {
     );
   }
 
-  const totalComments = await Comment.countDocuments(
-    {modelId: new mongoose.Types.ObjectId(modelId)},
-  );
+  const totalComments = await Comment.countDocuments({
+    modelId: new mongoose.Types.ObjectId(modelId),
+  });
   const totalPages = Math.ceil(totalComments / limitNumber);
 
   return res.status(200).json(
@@ -180,4 +184,101 @@ const getComments = asyncHandler(async (req, res) => {
   );
 });
 
-export { createComment, getComments };
+// edit a comment
+const updateComment = asyncHandler(async (req, res) => {
+  // get the comment id to be updated
+  // get the user updating the comment
+  // get the owner of the comment
+  // check if the commenter and the user are same
+  // if same the get the updated comment content and update the comment
+  // return the response
+
+  // get the comment id to be updated
+  const { commentId } = req.params;
+
+  if (!commentId) throw new apiError(400, "Comment Id is required");
+
+  // validate the comment id
+  validateMongoId(commentId, "commentId");
+
+  // get the user updating the comment
+  const user = req.user?._id;
+
+  // get the owner of the comment
+  const currentComment = await Comment.findById(commentId).select(
+    "-content -targetModel -modelId",
+  );
+
+  if (!currentComment) throw new apiError(404, "Comment not found");
+
+  // check if the user and the owner of the comment are same
+  if (!currentComment.owner.equals(user))
+    throw new apiError(403, "Unauthorized Access");
+
+  // getting the updated comment content
+  const comment = req.body?.comment;
+
+  if (!comment) throw new apiError(400, "Provide the edited comment");
+
+  // update the Comment
+  const updatedComment = await Comment.findByIdAndUpdate(
+    commentId,
+    {
+      $set: {
+        ...(comment && { content: comment }),
+      },
+    },
+    { new: true },
+  );
+
+  // return the response
+  if (!updatedComment) throw new apiError(500, "Could not update the details");
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, updatedComment, "Comment edited"));
+});
+
+// delete a comment
+const deleteComment = asyncHandler(async (req, res) => {
+  // get the comment id to be updated
+  // get the user updating the comment
+  // get the owner of the comment
+  // check if the commenter and the user are same
+  // if same then delete the comment
+  // return the response
+
+  // get the comment id to be updated
+  const { commentId } = req.params;
+
+  if (!commentId) throw new apiError(400, "Comment Id is required");
+
+  // validate the comment id
+  validateMongoId(commentId, "commentId");
+
+  // get the user updating the comment
+  const user = req.user?._id;
+
+  // get the owner of the comment
+  const currentComment = await Comment.findById(commentId).select(
+    "-content -targetModel -modelId",
+  );
+
+  if (!currentComment) throw new apiError(404, "Comment not found");
+
+  // check if the user and the owner of the comment are same
+  if (!currentComment.owner.equals(user))
+    throw new apiError(403, "Unauthorized Access");
+
+  // delete the comment
+  const deletedComment = await Comment.findByIdAndDelete(commentId);
+
+  // return the response
+  if (!deletedComment) throw new apiError(500, "Could not delete the comment");
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, {}, "Successfully deleted the comment"));
+});
+
+export { createComment, getComments, updateComment, deleteComment };
