@@ -27,7 +27,7 @@ const createComment = asyncHandler(async (req, res) => {
 
   if (targetModel !== ("Video" || "Tweet"))
     throw new apiError(400, "invalid target Model");
-  validateMongoId(modelId, "Model Id");
+  validateMongoId(modelId, `${targetModel} Id`);
 
   // get  the comment content and validate it
   const commentContent = req.body.comment;
@@ -79,7 +79,7 @@ const getComments = asyncHandler(async (req, res) => {
 
   if (targetModel !== ("Video" || "Tweet"))
     throw new apiError(400, "invalid target Model");
-  validateMongoId(modelId, "Model Id");
+  validateMongoId(modelId, `${targetModel} Id`);
 
   // validate other queries
   const pageNumber = parseInt(page, 10) || 1;
