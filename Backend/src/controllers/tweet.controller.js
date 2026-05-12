@@ -91,6 +91,7 @@ const updateTweet = asyncHandler(async (req, res) => {
 
   // get the tweetId and validate it
   const { tweetId } = req.params;
+  if(!tweetId) throw new apiError(400,"Tweet Id is required")
   validateMongoId(tweetId, "Tweet Id");
 
   // get the content
